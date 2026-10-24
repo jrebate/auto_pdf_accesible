@@ -98,6 +98,12 @@ button.cz-btn:disabled:hover { background: var(--cz-primary); color: var(--cz-on
 .pro ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
 .pro .cz-btn { background: var(--cz-lime); color: var(--cz-on-lime); }
 .pro .cz-btn:hover { background: var(--cz-fg); color: var(--cz-bg); }
+.pro-ask { margin: 0; font-weight: 600; }
+.pro-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.pro-contact { margin: 0; font-size: .94rem; }
+.pro-contact a { overflow-wrap: anywhere; }
+.pro .cz-btn--outline { background: transparent; color: var(--cz-fg); border-color: var(--cz-input); }
+.pro .cz-btn--outline:hover { background: transparent; color: var(--cz-fg); border-color: var(--cz-fg); }
 .pro-thanks { font-size: .95rem; }
 
 .about { margin-top: 48px; display: grid; gap: 12px; }
@@ -184,15 +190,19 @@ button.cz-btn:disabled:hover { background: var(--cz-primary); color: var(--cz-on
       <section class="pro cz-dark" aria-labelledby="proTitle">
         <div class="pro-head">
           <strong id="proTitle">Informe y lote · próximamente</strong>
-          <span class="price">7 € al mes · <small>precio previsto</small></span>
         </div>
+        <p class="pro-ask">¿Pagarías una cantidad simbólica por estas mejoras?</p>
         <ul>
           <li>Informe descargable en PDF y HTML, con tu logotipo, para entregar a tu cliente o a tu equipo.</li>
           <li>Revisión de muchos PDF a la vez, con una tabla para comparar resultados.</li>
           <li>Detalle por página y por elemento: qué imagen, qué tabla y dónde está.</li>
         </ul>
-        <div><button type="button" class="cz-btn" id="proBtn">Me interesa</button></div>
-        <div class="pro-thanks" id="proThanks" hidden role="status">Gracias, lo tendremos en cuenta. Tu interés nos ayuda a seguir mejorando el Comprobador. Mientras tanto, la revisión básica es gratis.</div>
+        <div class="pro-actions">
+          <button type="button" class="cz-btn" id="proBtn">Me interesa</button>
+          <a class="cz-btn cz-btn--outline" href="https://ko-fi.com/jrebate" target="_blank" rel="noopener" data-track="pdf-kofi-pro">Apóyalo ya en Ko-fi</a>
+        </div>
+        <div class="pro-thanks" id="proThanks" hidden role="status">Gracias, lo tendremos en cuenta. Tu interés nos ayuda a decidir qué construir. Mientras tanto, la revisión básica es gratis.</div>
+        <p class="pro-contact">¿Te interesa mucho o echas algo en falta? Escríbeme, soy Jorge: <a href="mailto:jrebateserrano@gmail.com" data-track="pdf-contacto-email">jrebateserrano@gmail.com</a></p>
       </section>
     </div>
 
