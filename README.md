@@ -4,7 +4,7 @@ Herramienta gratuita que revisa en el navegador algunos puntos básicos de acces
 
 El PDF no se sube a ningún servidor: se analiza en el navegador.
 
-Web: https://jrebate.github.io/auto_pfd_accesible/
+Web: https://jrebate.github.io/auto_pdf_accesible/
 
 ## Aviso
 
