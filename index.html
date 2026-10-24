@@ -1,0 +1,824 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Comprobador de PDF</title>
+<meta name="description" content="Revisa en tu navegador las etiquetas, el idioma, el título y el texto alternativo de un PDF. Gratis, sin registro y sin subir el archivo.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* Una sola columna: zona para soltar el PDF, resumen, comprobaciones automáticas, revisión manual y Pro. */
+:root {
+  --paper: #f3f6f5;
+  --surface: #ffffff;
+  --ink: #142120;
+  --muted: #53625f;
+  --line: #d3ddda;
+  --accent: #0c5a61;
+  --accent-ink: #ffffff;
+  --accent-soft: #e2efef;
+  --ok: #1d6f37;
+  --ok-soft: #e3f2e7;
+  --warn: #8a5100;
+  --warn-soft: #fbf0dc;
+  --bad: #a8231b;
+  --bad-soft: #fbe6e4;
+  --font-ui: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --radius: 10px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0e1514; --surface: #162120; --ink: #e5eeec; --muted: #9db0ac; --line: #2b3b39;
+    --accent: #6cc6cc; --accent-ink: #062325; --accent-soft: #173335;
+    --ok: #74d18f; --ok-soft: #173322; --warn: #f1b75e; --warn-soft: #362812; --bad: #ff8f85; --bad-soft: #3a1b19;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0e1514; --surface: #162120; --ink: #e5eeec; --muted: #9db0ac; --line: #2b3b39;
+  --accent: #6cc6cc; --accent-ink: #062325; --accent-soft: #173335;
+  --ok: #74d18f; --ok-soft: #173322; --warn: #f1b75e; --warn-soft: #362812; --bad: #ff8f85; --bad-soft: #3a1b19;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--font-ui); font-size: 1rem; line-height: 1.55; margin: 0;
+}
+.wrap {
+  max-width: 880px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 56px;
+}
+a { color: var(--accent); }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.skip { position: absolute; left: -9999px; }
+.skip:focus { left: 16px; top: 16px; background: var(--surface); padding: 8px 12px; z-index: 20; }
+.sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+header.top { display: grid; gap: 10px; margin-bottom: 26px; max-width: 68ch; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .02em; color: var(--accent); }
+.brand svg { flex: none; }
+h1 { font-size: clamp(1.7rem, 3.6vw, 2.5rem); line-height: 1.15; margin: 0; text-wrap: balance; }
+h2 { font-size: 1.3rem; line-height: 1.25; margin: 0; }
+.lede { color: var(--muted); margin: 0; font-size: 1.08rem; }
+.badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.badge { font-size: .82rem; border: 1px solid var(--line); background: var(--surface); padding: 3px 10px; border-radius: 999px; color: var(--muted); }
+
+.drop {
+  display: grid; justify-items: center; gap: 10px; text-align: center;
+  border: 2px dashed var(--line); border-radius: var(--radius); background: var(--surface);
+  padding: 34px 18px; cursor: pointer; transition: border-color .15s, background .15s;
+}
+.drop:hover, .drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.drop:focus-within { outline: 3px solid var(--accent); outline-offset: 2px; }
+.drop strong { font-size: 1.15rem; }
+.drop .hint { max-width: 52ch; }
+.drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.fake-btn {
+  display: inline-block; background: var(--accent); color: var(--accent-ink); font-weight: 700;
+  border-radius: 8px; padding: 9px 16px;
+}
+.hint { color: var(--muted); font-size: .9rem; margin: 0; }
+.progress { margin-top: 12px; color: var(--muted); font-size: .95rem; min-height: 1.5em; }
+.progress.err { color: var(--bad); font-weight: 700; }
+
+.btn {
+  font: inherit; font-weight: 700; cursor: pointer; border-radius: 8px; padding: 8px 14px;
+  background: var(--accent); color: var(--accent-ink); border: 1px solid var(--accent);
+}
+.btn.ghost { background: transparent; color: var(--accent); }
+
+#results { display: grid; gap: 22px; margin-top: 28px; }
+.summary {
+  border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 18px 16px;
+  display: grid; gap: 10px; background: var(--surface);
+}
+.summary.s-bad { background: var(--bad-soft); }
+.summary.s-warn { background: var(--warn-soft); }
+.summary.s-ok { background: var(--ok-soft); }
+.summary h2:focus { outline: none; }
+.summary p { margin: 0; }
+.fileinfo { color: var(--muted); font-size: .9rem; overflow-wrap: anywhere; }
+.tally { display: flex; flex-wrap: wrap; gap: 8px; font-size: .9rem; font-variant-numeric: tabular-nums; }
+.tally span { padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.status-line { font-size: .9rem; color: var(--muted); min-height: 1.4em; }
+
+.section-head { display: grid; gap: 4px; }
+.checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.check {
+  border: 1px solid var(--line); border-left-width: 5px; border-radius: var(--radius); background: var(--surface);
+  padding: 14px 16px; display: grid; gap: 6px;
+}
+.check.fail { border-left-color: var(--bad); }
+.check.warn { border-left-color: var(--warn); }
+.check.pass { border-left-color: var(--ok); }
+.check.na, .check.info { border-left-color: var(--line); }
+.check-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 12px; }
+.check h3 { font-size: 1.05rem; margin: 0; }
+.pill { font-size: .8rem; font-weight: 700; padding: 2px 10px; border-radius: 999px; white-space: nowrap; }
+.fail .pill { background: var(--bad-soft); color: var(--bad); }
+.warn .pill { background: var(--warn-soft); color: var(--warn); }
+.pass .pill { background: var(--ok-soft); color: var(--ok); }
+.na .pill, .info .pill { background: var(--paper); color: var(--muted); }
+.check p { margin: 0; }
+.check ul { margin: 0; padding-left: 1.2em; font-size: .93rem; }
+.check .ref { color: var(--muted); font-size: .84rem; }
+.check details summary { cursor: pointer; color: var(--accent); font-size: .93rem; }
+.check details p { margin-top: 6px; font-size: .93rem; }
+
+.manual { border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); padding: 16px 18px; display: grid; gap: 10px; }
+.manual ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.manual label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.manual input { margin-top: 5px; accent-color: var(--accent); }
+
+.kofi {
+  display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; justify-content: space-between;
+  border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); padding: 12px 16px; font-size: .95rem;
+}
+.kofi a { font-weight: 700; }
+
+.pro { border: 1px solid var(--accent); background: var(--accent-soft); border-radius: var(--radius); padding: 18px; display: grid; gap: 10px; }
+.pro-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 12px; }
+.pro-head strong { font-size: 1.1rem; }
+.price { font-weight: 700; }
+.price small { font-weight: 400; color: var(--muted); }
+.pro ul { margin: 0; padding-left: 1.2em; }
+.pro-thanks { font-size: .95rem; }
+
+.about { margin-top: 34px; display: grid; gap: 12px; }
+.about details { border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); padding: 12px 16px; }
+.about summary { cursor: pointer; font-weight: 700; }
+.about details p, .about details ul { font-size: .95rem; }
+.foot { margin-top: 34px; border-top: 1px solid var(--line); padding-top: 18px; color: var(--muted); font-size: .9rem; display: grid; gap: 8px; }
+.foot p { margin: 0; }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Saltar al contenido</a>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M6 2.5h8l4.5 4.5v14.5H6z"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M14 2.5V7h4.5M9 13.5l2 2 4-4.5"/></svg>
+      Comprobador de PDF
+    </div>
+    <h1>Revisa la accesibilidad de un PDF sin instalar nada</h1>
+    <p class="lede">Comprueba las etiquetas, el idioma, el título, el texto alternativo de las imágenes y otros puntos básicos. Funciona en Windows, Mac, Linux y Chromebook.</p>
+    <div class="badges">
+      <span class="badge">Tu PDF no sale de tu navegador</span>
+      <span class="badge">Gratis y sin registro</span>
+      <span class="badge">Comprobaciones automáticas y lista manual</span>
+    </div>
+  </header>
+
+  <main id="main">
+    <section aria-labelledby="dropTitle">
+      <h2 id="dropTitle" class="sr">Elige un PDF</h2>
+      <label class="drop" id="drop" for="file">
+        <input type="file" id="file" accept="application/pdf,.pdf" aria-describedby="dropHint">
+        <strong>Suelta aquí tu PDF</strong>
+        <span class="fake-btn" aria-hidden="true">Elegir PDF</span>
+        <span class="hint" id="dropHint">El archivo se analiza en este dispositivo. No se sube a ningún servidor.</span>
+      </label>
+      <div class="progress" id="progress" role="status" aria-live="polite"></div>
+    </section>
+
+    <div id="results" hidden>
+      <section class="summary" id="summary" aria-labelledby="sumTitle">
+        <h2 id="sumTitle" tabindex="-1"></h2>
+        <p id="sumText"></p>
+        <p class="fileinfo" id="fileInfo"></p>
+        <div class="tally" id="tally"></div>
+        <div class="actions">
+          <button type="button" class="btn" id="copySum">Copiar resumen</button>
+          <button type="button" class="btn ghost" id="again">Revisar otro PDF</button>
+        </div>
+        <div class="status-line" id="copyStatus" role="status"></div>
+      </section>
+
+      <section aria-labelledby="autoTitle" class="section-head">
+        <h2 id="autoTitle">Comprobaciones automáticas</h2>
+        <p class="hint">Cada punto indica si se ha detectado un error, si conviene revisarlo o si no se ha detectado ningún problema.</p>
+      </section>
+      <ul class="checks" id="checks"></ul>
+
+      <section class="manual" aria-labelledby="manualTitle">
+        <h2 id="manualTitle">Revisión manual</h2>
+        <p class="hint">Estos puntos no se pueden comprobar de forma automática. Las casillas son solo para ayudarte y no se guardan.</p>
+        <ul id="manualList"></ul>
+      </section>
+
+      <div class="kofi" id="kofiNudge">
+        <span>¿Te ha ahorrado tiempo? El Comprobador es gratis y lo mantenemos con tu apoyo.</span>
+        <a href="https://ko-fi.com/jrebate" target="_blank" rel="noopener" data-track="pdf-kofi-tras-analizar">Invítanos a un café en Ko-fi</a>
+      </div>
+
+      <section class="pro" aria-labelledby="proTitle">
+        <div class="pro-head">
+          <strong id="proTitle">Informe y lote · próximamente</strong>
+          <span class="price">7 € al mes <small>precio previsto</small></span>
+        </div>
+        <ul>
+          <li>Informe descargable en PDF y HTML, con tu logotipo, para entregar a tu cliente o a tu equipo.</li>
+          <li>Revisión de muchos PDF a la vez, con una tabla para comparar resultados.</li>
+          <li>Detalle por página y por elemento: qué imagen, qué tabla y dónde está.</li>
+        </ul>
+        <div><button type="button" class="btn" id="proBtn">Me interesa</button></div>
+        <div class="pro-thanks" id="proThanks" hidden role="status">Gracias, lo tendremos en cuenta. Tu interés nos ayuda a seguir mejorando el Comprobador. Mientras tanto, la revisión básica es gratis.</div>
+      </section>
+    </div>
+
+    <section class="about" aria-labelledby="aboutTitle">
+      <h2 id="aboutTitle">Antes de usarlo</h2>
+      <details>
+        <summary>Qué comprueba y qué no</summary>
+        <p>Comprueba de forma automática si el PDF tiene etiquetas, idioma principal y título, si las imágenes etiquetadas tienen texto alternativo, si hay texto real y no solo imágenes, cómo se ordenan los encabezados, si las tablas tienen celdas de encabezado, los marcadores, los campos de formulario, el orden de tabulación y las restricciones de seguridad.</p>
+        <p>No comprueba si el orden de lectura es lógico, si los textos alternativos son adecuados, el contraste de colores ni muchos otros requisitos. Por eso, además de los resultados, te damos una lista para revisar a mano.</p>
+      </details>
+      <details>
+        <summary>Condiciones de uso</summary>
+        <ul>
+          <li>Es una herramienta orientativa y gratuita. Los resultados son automáticos y pueden contener errores u omisiones.</li>
+          <li>Que no se detecten errores no significa que el documento sea accesible ni que cumpla las pautas WCAG, la norma EN 301 549, PDF/UA o cualquier ley.</li>
+          <li>No es una auditoría, una certificación ni asesoramiento jurídico. No emitimos sellos ni certificados.</li>
+          <li>Quien publica el documento es responsable de revisarlo. Para documentos importantes, haz una revisión manual completa y pruébalo con productos de apoyo.</li>
+          <li>Se ofrece tal cual, sin garantías de ningún tipo.</li>
+        </ul>
+      </details>
+      <details>
+        <summary>Privacidad</summary>
+        <p>El PDF se lee y se analiza en tu navegador con <a href="https://mozilla.github.io/pdf.js/" target="_blank" rel="noopener">pdf.js</a> y <a href="https://pdf-lib.js.org/" target="_blank" rel="noopener">pdf-lib</a>, que se sirven desde esta misma web. El archivo no se sube a ningún servidor y no guardamos su nombre ni su contenido.</p>
+        <p>Contamos visitas y clics con <a href="https://www.goatcounter.com/" target="_blank" rel="noopener">GoatCounter</a>, que no usa cookies ni guarda datos personales.</p>
+      </details>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>Comprobaciones inspiradas en las técnicas para PDF de las pautas WCAG y en el protocolo Matterhorn de PDF/UA. Esta herramienta no presta asesoramiento jurídico.</p>
+    <p>¿Te resulta útil? Puedes apoyar el Comprobador <a href="https://ko-fi.com/jrebate" target="_blank" rel="noopener" data-track="pdf-kofi-pie">invitándonos a un café en Ko-fi</a>.</p>
+  </footer>
+</div>
+
+<script src="vendor/pdf-lib.min.js"></script>
+<script type="module">
+import * as pdfjsLib from "./vendor/pdf.min.mjs";
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("./vendor/pdf.worker.min.mjs", import.meta.url).href;
+
+const { PDFDocument, PDFName, PDFDict, PDFArray, PDFRef, PDFString, PDFHexString, PDFNumber, PDFBool, PDFRawStream, decodePDFRawStream } = window.PDFLib;
+
+const $ = (id) => document.getElementById(id);
+const MAX_TEXT_PAGES = 400;
+const MAX_NODES = 200000;
+
+// Eventos de GoatCounter (sin cookies). Nunca enviamos el nombre del archivo.
+function track(name, title) {
+  try { if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: name, title: title || name, event: true }); } catch (e) {}
+}
+
+const STATUS = {
+  fail: "Error detectado",
+  warn: "Revisar",
+  pass: "Sin errores detectados",
+  na: "No aplica",
+  info: "Información"
+};
+
+const MANUAL = [
+  "El orden de lectura de las etiquetas sigue el orden lógico del contenido, también en columnas, notas y cuadros.",
+  "El texto alternativo de cada imagen transmite su información, y las imágenes decorativas están marcadas como artefacto.",
+  "Los encabezados reflejan la estructura real del documento.",
+  "Las tablas de datos tienen las celdas de encabezado bien asociadas, y no se usan tablas para maquetar.",
+  "Las listas están etiquetadas como listas.",
+  "El texto de cada enlace explica a dónde lleva.",
+  "El texto tiene suficiente contraste con el fondo (4,5:1 en texto normal, 3:1 en texto grande).",
+  "La información no depende solo del color, la forma o la posición.",
+  "Los fragmentos en otro idioma tienen marcado su idioma.",
+  "Los formularios se pueden rellenar y enviar con teclado y con lector de pantalla.",
+  "Has probado el documento con un lector de pantalla, como NVDA, JAWS o VoiceOver."
+];
+
+const STD_TYPES = new Set(("Document Part Art Sect Div BlockQuote Caption TOC TOCI Index NonStruct Private " +
+  "P H H1 H2 H3 H4 H5 H6 L LI Lbl LBody Table TR TH TD THead TBody TFoot " +
+  "Span Quote Note Reference BibEntry Code Link Annot Ruby RB RT RP Warichu WT WP " +
+  "Figure Formula Form DocumentFragment Aside Title FENote Sub Em Strong Artifact").split(" "));
+
+// --- Utilidades de pdf-lib ---
+function lk(dict, key) {
+  try { return dict && dict.lookup ? dict.lookup(PDFName.of(key)) : undefined; } catch (e) { return undefined; }
+}
+function nameOf(o) { return o instanceof PDFName ? o.decodeText() : null; }
+function textOf(o) {
+  if (o instanceof PDFString || o instanceof PDFHexString) { try { return o.decodeText(); } catch (e) { return ""; } }
+  return null;
+}
+function arr(o) { return o instanceof PDFArray ? o.asArray() : (o == null ? [] : [o]); }
+
+function plural(n, one, many) { return n + " " + (n === 1 ? one : many); }
+function pageList(pages) {
+  const uniq = [...new Set(pages.filter((p) => p != null))].sort((a, b) => a - b);
+  if (!uniq.length) return "";
+  const shown = uniq.slice(0, 15).join(", ");
+  return (uniq.length === 1 ? "página " : "páginas ") + shown + (uniq.length > 15 ? " y " + (uniq.length - 15) + " más" : "");
+}
+function langName(code) {
+  try { const n = new Intl.DisplayNames(["es"], { type: "language" }).of(code); return n && n !== code ? n : ""; } catch (e) { return ""; }
+}
+
+// Recorre el árbol de estructura y reúne figuras, encabezados y tablas en orden de lectura.
+function walkStructure(doc) {
+  const catalog = doc.catalog;
+  const root = lk(catalog, "StructTreeRoot");
+  const out = { hasRoot: root instanceof PDFDict, elements: 0, figures: [], headings: [], tables: [], truncated: false, roles: {} };
+  if (!out.hasRoot) return out;
+
+  const roleMap = {};
+  const rm = lk(root, "RoleMap");
+  if (rm instanceof PDFDict) {
+    for (const [k, v] of rm.entries()) { const t = nameOf(v); if (t) roleMap[k.decodeText()] = t; }
+  }
+  const resolve = (t) => {
+    let n = 0;
+    while (t && !STD_TYPES.has(t) && roleMap[t] && n < 10) { t = roleMap[t]; n++; }
+    return t;
+  };
+
+  const pageIndex = new Map();
+  doc.getPages().forEach((p, i) => pageIndex.set(p.ref.toString(), i + 1));
+  const pageOf = (el, inherited) => {
+    const pg = el.get(PDFName.of("Pg"));
+    return pg instanceof PDFRef ? (pageIndex.get(pg.toString()) || inherited) : inherited;
+  };
+
+  const seen = new Set();
+  const stack = [];
+  const pushKids = (k, ctx) => {
+    const kids = arr(k);
+    for (let i = kids.length - 1; i >= 0; i--) stack.push([kids[i], ctx]);
+  };
+  pushKids(root.get(PDFName.of("K")), { page: null, table: null });
+
+  while (stack.length) {
+    if (out.elements > MAX_NODES) { out.truncated = true; break; }
+    let [node, ctx] = stack.pop();
+    if (node instanceof PDFRef) {
+      const key = node.toString();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      node = doc.context.lookup(node);
+    }
+    if (node instanceof PDFArray) { pushKids(node, ctx); continue; }
+    if (!(node instanceof PDFDict)) continue; // MCID numéricos
+    const type = nameOf(lk(node, "Type"));
+    if (type === "MCR" || type === "OBJR") continue;
+    const raw = nameOf(lk(node, "S"));
+    if (!raw) continue;
+    out.elements++;
+    const role = resolve(raw);
+    out.roles[role] = (out.roles[role] || 0) + 1;
+    const page = pageOf(node, ctx.page);
+    const next = { page, table: ctx.table };
+
+    if (role === "Figure" || role === "Formula") {
+      out.figures.push({ role, page, alt: textOf(lk(node, "Alt")), actual: textOf(lk(node, "ActualText")) });
+    } else if (/^H[1-6]$/.test(role)) {
+      out.headings.push({ level: +role[1], page });
+    } else if (role === "H") {
+      out.headings.push({ level: 0, page });
+    } else if (role === "Table") {
+      const t = { page, th: 0, tr: 0 };
+      out.tables.push(t);
+      next.table = t;
+    } else if (role === "TH" && ctx.table) {
+      ctx.table.th++;
+    } else if (role === "TR" && ctx.table) {
+      ctx.table.tr++;
+    }
+    pushKids(node.get(PDFName.of("K")), next);
+  }
+  return out;
+}
+
+function readXmp(catalog) {
+  try {
+    const s = lk(catalog, "Metadata");
+    if (!(s instanceof PDFRawStream)) return "";
+    const bytes = decodePDFRawStream(s).decode();
+    return new TextDecoder("utf-8").decode(bytes);
+  } catch (e) { return ""; }
+}
+
+// --- Análisis ---
+async function analyze(file) {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const head = new TextDecoder("latin1").decode(bytes.slice(0, 1024));
+  if (head.indexOf("%PDF") === -1) throw userError("Este archivo no parece un PDF.");
+
+  progress("Leyendo la estructura del documento…");
+  let doc = null;
+  try {
+    doc = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false, throwOnInvalidObject: false });
+  } catch (e) { doc = null; }
+
+  progress("Leyendo el texto de las páginas…");
+  let pdf;
+  try {
+    pdf = await pdfjsLib.getDocument({ data: bytes.slice(), isEvalSupported: false, enableXfa: false, stopAtErrors: false }).promise;
+  } catch (e) {
+    if (e && e.name === "PasswordException") throw userError("Este PDF pide contraseña para abrirse. Quita la contraseña de apertura y vuelve a probar.");
+    throw userError("No se ha podido abrir el PDF. Puede que esté dañado.");
+  }
+
+  const numPages = pdf.numPages;
+  let meta = { info: {}, metadata: null };
+  try { meta = await pdf.getMetadata(); } catch (e) {}
+  let outline = null; try { outline = await pdf.getOutline(); } catch (e) {}
+  let perms = null; try { perms = await pdf.getPermissions(); } catch (e) {}
+  let markInfo = null; try { markInfo = await pdf.getMarkInfo(); } catch (e) {}
+
+  const noText = [];
+  const textPages = Math.min(numPages, MAX_TEXT_PAGES);
+  for (let i = 1; i <= textPages; i++) {
+    if (i % 5 === 0 || i === textPages) progress("Leyendo el texto de las páginas… " + i + " de " + textPages);
+    try {
+      const page = await pdf.getPage(i);
+      const tc = await page.getTextContent();
+      const chars = tc.items.reduce((n, it) => n + (it.str ? it.str.replace(/\s+/g, "").length : 0), 0);
+      if (chars === 0) noText.push(i);
+      page.cleanup();
+    } catch (e) { noText.push(i); }
+  }
+
+  progress("Revisando etiquetas, imágenes, encabezados y tablas…");
+  const catalog = doc ? doc.catalog : null;
+  const encrypted = doc ? doc.isEncrypted : false;
+  const struct = doc ? walkStructure(doc) : null;
+  const xmp = catalog ? readXmp(catalog) : (meta.metadata && meta.metadata.getRaw ? meta.metadata.getRaw() : "");
+  await pdf.destroy();
+
+  const checks = [];
+  const add = (c) => checks.push(c);
+
+  // 1. Etiquetas
+  if (!struct) {
+    add({ id: "tags", title: "Documento etiquetado", status: "warn", ref: "WCAG 1.3.1",
+      text: "No se ha podido leer la estructura interna del PDF, así que no se han comprobado las etiquetas.",
+      fix: "Vuelve a exportar el PDF desde el programa original y prueba de nuevo." });
+  } else {
+    const marked = lk(lk(catalog, "MarkInfo"), "Marked");
+    const isMarked = marked instanceof PDFBool && marked.asBoolean();
+    if (!struct.hasRoot || struct.elements === 0) {
+      add({ id: "tags", title: "Documento etiquetado", status: "fail", ref: "WCAG 1.3.1",
+        text: "El PDF no tiene etiquetas. Sin ellas, un lector de pantalla no puede saber qué es un título, una lista, una tabla o una imagen, ni en qué orden leer.",
+        fix: "Al exportar desde Word, LibreOffice o InDesign, activa la opción de PDF etiquetado (en Word: Guardar como PDF › Opciones › Etiquetas de la estructura del documento para accesibilidad)." });
+    } else {
+      const det = [plural(struct.elements, "elemento etiquetado", "elementos etiquetados") + "."];
+      let status = "pass";
+      let text = "El PDF tiene etiquetas de estructura.";
+      if (!isMarked) { status = "warn"; text = "El PDF tiene etiquetas, pero no indica que esté etiquetado (falta Marked en MarkInfo). Algunos lectores pueden ignorarlas."; }
+      if (markInfo && markInfo.Suspects) { status = "warn"; det.push("El documento indica que sus etiquetas pueden no ser fiables (Suspects)."); }
+      if (struct.truncated) det.push("El documento es muy grande y solo se han revisado los primeros " + MAX_NODES.toLocaleString("es") + " elementos.");
+      add({ id: "tags", title: "Documento etiquetado", status, ref: "WCAG 1.3.1", text, details: det,
+        fix: status === "pass" ? "" : "Vuelve a exportar el PDF con la opción de PDF etiquetado activada." });
+    }
+  }
+
+  // 2. Idioma
+  if (catalog) {
+    const lang = textOf(lk(catalog, "Lang"));
+    if (!lang || !lang.trim()) {
+      add({ id: "lang", title: "Idioma principal", status: "fail", ref: "WCAG 3.1.1",
+        text: "El documento no indica su idioma principal. El lector de pantalla puede leerlo con la pronunciación de otro idioma.",
+        fix: "Indica el idioma del documento en el programa original antes de exportar, o en Acrobat: Archivo › Propiedades › Avanzado › Idioma." });
+    } else if (encrypted) {
+      add({ id: "lang", title: "Idioma principal", status: "pass", ref: "WCAG 3.1.1",
+        text: "El documento indica un idioma principal. Está cifrado, así que no se ha podido leer cuál." });
+    } else if (!/^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{1,8})*$/.test(lang.trim())) {
+      add({ id: "lang", title: "Idioma principal", status: "warn", ref: "WCAG 3.1.1",
+        text: "El idioma indicado («" + lang + "») no tiene un formato reconocible. Debería ser un código como es, es-ES o ca.",
+        fix: "Corrige el idioma en las propiedades del documento." });
+    } else {
+      const n = langName(lang.trim());
+      add({ id: "lang", title: "Idioma principal", status: "pass", ref: "WCAG 3.1.1",
+        text: "El idioma principal es " + lang.trim() + (n ? " (" + n + ")" : "") + ". Comprueba que es el idioma real del texto." });
+    }
+  }
+
+  // 3. Título
+  {
+    const infoTitle = (meta.info && meta.info.Title || "").trim();
+    let xmpTitle = "";
+    try { xmpTitle = (meta.metadata && meta.metadata.get("dc:title") || "").trim(); } catch (e) {}
+    const title = xmpTitle || infoTitle;
+    const vp = lk(catalog, "ViewerPreferences");
+    const ddt = lk(vp, "DisplayDocTitle");
+    const shows = ddt instanceof PDFBool && ddt.asBoolean();
+    if (!title) {
+      add({ id: "title", title: "Título del documento", status: "fail", ref: "WCAG 2.4.2",
+        text: "El documento no tiene título. Los lectores de pantalla y las pestañas del navegador mostrarán el nombre del archivo.",
+        fix: "Escribe el título en las propiedades del documento original (en Word: Archivo › Información › Título) y vuelve a exportar." });
+    } else {
+      const det = [];
+      let status = "pass";
+      if (/\.(docx?|odt|pptx?|xlsx?|indd|pdf)$/i.test(title) || /^microsoft (word|powerpoint)/i.test(title) || /^(untitled|sin título|documento\d*|document\d*)$/i.test(title)) {
+        status = "warn"; det.push("El título parece un nombre de archivo o un texto por defecto. Usa un título que describa el contenido.");
+      }
+      if (!shows) {
+        status = "warn"; det.push("El visor mostrará el nombre del archivo en lugar del título, porque no está activada la opción de mostrar el título (DisplayDocTitle).");
+      }
+      if (!xmpTitle && infoTitle) det.push("El título solo está en el diccionario de información, no en los metadatos XMP.");
+      add({ id: "title", title: "Título del documento", status, ref: "WCAG 2.4.2",
+        text: "El título es «" + title + "».", details: det,
+        fix: !shows ? "En Acrobat: Archivo › Propiedades › Vista inicial › Mostrar: Título del documento. Word lo activa al exportar con las opciones de accesibilidad." : "" });
+    }
+  }
+
+  // 4. Texto real
+  {
+    const ref = "WCAG 1.4.5";
+    if (noText.length === textPages && textPages > 0) {
+      add({ id: "text", title: "Texto real, no imágenes de texto", status: "fail", ref,
+        text: "No se ha encontrado texto en ninguna página. Parece un documento escaneado o hecho con imágenes, y un lector de pantalla no podrá leerlo.",
+        fix: "Usa el documento original con texto, o aplica reconocimiento de texto (OCR) y revisa el resultado." });
+    } else if (noText.length) {
+      add({ id: "text", title: "Texto real, no imágenes de texto", status: "warn", ref,
+        text: "Hay " + plural(noText.length, "página", "páginas") + " sin texto: " + pageList(noText) + ". Pueden ser páginas en blanco, imágenes o páginas escaneadas.",
+        fix: "Si esas páginas tienen texto en forma de imagen, aplica reconocimiento de texto (OCR) o sustitúyelas por el original." });
+    } else {
+      add({ id: "text", title: "Texto real, no imágenes de texto", status: "pass", ref,
+        text: "Todas las páginas revisadas tienen texto." + (numPages > textPages ? " Se han revisado las primeras " + textPages + " de " + numPages + "." : "") });
+    }
+  }
+
+  // 5. Texto alternativo
+  if (struct && struct.hasRoot && struct.elements > 0) {
+    const figs = struct.figures;
+    if (!figs.length) {
+      add({ id: "alt", title: "Texto alternativo de las imágenes", status: "na", ref: "WCAG 1.1.1",
+        text: "No hay imágenes ni fórmulas etiquetadas. Si el documento tiene imágenes con información, comprueba que no se han quedado sin etiquetar." });
+    } else {
+      const missing = figs.filter((f) => !((f.alt && f.alt.trim()) || (f.actual && f.actual.trim())));
+      const weak = encrypted ? [] : figs.filter((f) => f.alt && f.alt.trim() && (
+        /\.(jpe?g|png|gif|tiff?|bmp|svg|webp|emf|wmf)$/i.test(f.alt.trim()) ||
+        /^(imagen|image|figura|figure|foto|photo|picture|gráfico|grafico|logo|icono|icon)\s*\d*$/i.test(f.alt.trim())));
+      const det = [plural(figs.length, "imagen o fórmula etiquetada", "imágenes o fórmulas etiquetadas") + "."];
+      if (missing.length) det.push(plural(missing.length, "sin texto alternativo", "sin texto alternativo") + (pageList(missing.map((f) => f.page)) ? " (" + pageList(missing.map((f) => f.page)) + ")" : "") + ".");
+      if (weak.length) det.push(plural(weak.length, "con un texto alternativo que parece un nombre de archivo o una palabra genérica", "con un texto alternativo que parece un nombre de archivo o una palabra genérica") + (pageList(weak.map((f) => f.page)) ? " (" + pageList(weak.map((f) => f.page)) + ")" : "") + ".");
+      const status = missing.length ? "fail" : (weak.length ? "warn" : "pass");
+      add({ id: "alt", title: "Texto alternativo de las imágenes", status, ref: "WCAG 1.1.1",
+        text: missing.length ? "Hay imágenes sin texto alternativo. Un lector de pantalla no podrá describirlas."
+          : weak.length ? "Todas las imágenes etiquetadas tienen texto alternativo, pero algunos no parecen descriptivos."
+          : "Todas las imágenes etiquetadas tienen texto alternativo. Revisa a mano que describan bien cada imagen.",
+        details: det,
+        fix: status === "pass" ? "" : "Añade una descripción a cada imagen en el programa original (en Word: clic derecho › Ver texto alternativo). Si una imagen es decorativa, márcala como decorativa." });
+    }
+  } else {
+    add({ id: "alt", title: "Texto alternativo de las imágenes", status: "na", ref: "WCAG 1.1.1",
+      text: "No se puede comprobar porque el documento no tiene etiquetas." });
+  }
+
+  // 6. Encabezados
+  if (struct && struct.hasRoot && struct.elements > 0) {
+    const hs = struct.headings;
+    if (!hs.length) {
+      add({ id: "headings", title: "Encabezados", status: numPages > 1 ? "warn" : "na", ref: "WCAG 1.3.1 y 2.4.6",
+        text: "No hay encabezados etiquetados. En documentos de más de una página ayudan mucho a orientarse y a saltar entre secciones.",
+        fix: "Usa los estilos de título (Título 1, Título 2…) del programa original en lugar de cambiar el tamaño de la letra a mano." });
+    } else {
+      const numbered = hs.filter((h) => h.level > 0);
+      const skips = [];
+      let prev = 0;
+      for (const h of numbered) {
+        if (h.level > prev + 1) skips.push({ from: prev, to: h.level, page: h.page });
+        prev = h.level;
+      }
+      const det = [plural(hs.length, "encabezado", "encabezados") + "."];
+      const counts = [1, 2, 3, 4, 5, 6].map((l) => [l, numbered.filter((h) => h.level === l).length]).filter((c) => c[1]);
+      if (counts.length) det.push(counts.map((c) => c[1] + " de nivel " + c[0]).join(", ") + ".");
+      if (numbered.length && numbered[0].level !== 1) det.push("El primer encabezado es de nivel " + numbered[0].level + ", no de nivel 1.");
+      skips.slice(0, 6).forEach((s) => det.push("Salto de " + (s.from ? "nivel " + s.from : "el inicio") + " a nivel " + s.to + (s.page ? " (página " + s.page + ")" : "") + "."));
+      if (skips.length > 6) det.push("Y " + (skips.length - 6) + " saltos más.");
+      const mixed = numbered.length && numbered.length !== hs.length;
+      if (mixed) det.push("Se mezclan encabezados numerados (H1 a H6) con encabezados genéricos (H).");
+      const status = skips.length || mixed ? "warn" : "pass";
+      add({ id: "headings", title: "Encabezados", status, ref: "WCAG 1.3.1 y 2.4.6",
+        text: status === "pass" ? "Los niveles de encabezado no se saltan ninguno. Comprueba que reflejan la estructura real." : "Hay saltos en los niveles de encabezado, lo que puede confundir al navegar por secciones.",
+        details: det,
+        fix: status === "pass" ? "" : "Revisa los estilos de título para que vayan en orden (por ejemplo, de Título 1 a Título 2, sin pasar directamente a Título 3)." });
+    }
+  }
+
+  // 7. Tablas
+  if (struct && struct.hasRoot && struct.elements > 0) {
+    const ts = struct.tables;
+    if (!ts.length) {
+      add({ id: "tables", title: "Tablas", status: "na", ref: "WCAG 1.3.1", text: "No hay tablas etiquetadas." });
+    } else {
+      const noTh = ts.filter((t) => t.th === 0);
+      const noTr = ts.filter((t) => t.tr === 0);
+      const det = [plural(ts.length, "tabla", "tablas") + "."];
+      if (noTh.length) det.push(plural(noTh.length, "tabla sin celdas de encabezado", "tablas sin celdas de encabezado") + (pageList(noTh.map((t) => t.page)) ? " (" + pageList(noTh.map((t) => t.page)) + ")" : "") + ".");
+      if (noTr.length) det.push(plural(noTr.length, "tabla sin filas etiquetadas", "tablas sin filas etiquetadas") + ".");
+      const status = noTh.length || noTr.length ? "warn" : "pass";
+      add({ id: "tables", title: "Tablas", status, ref: "WCAG 1.3.1",
+        text: status === "pass" ? "Todas las tablas tienen filas y celdas de encabezado. Comprueba que los encabezados están bien asociados." : "Hay tablas sin celdas de encabezado o sin filas. Si son tablas de datos, el lector de pantalla no podrá decir a qué columna pertenece cada dato.",
+        details: det,
+        fix: status === "pass" ? "" : "Marca la primera fila como fila de encabezado en el programa original (en Word: Propiedades de tabla › Fila › Repetir como fila de encabezado). Si la tabla solo sirve para maquetar, no la etiquetes como tabla." });
+    }
+  }
+
+  // 8. Marcadores
+  {
+    const hasOutline = outline && outline.length > 0;
+    if (numPages >= 10) {
+      add({ id: "bookmarks", title: "Marcadores", status: hasOutline ? "pass" : "warn", ref: "WCAG 2.4.5",
+        text: hasOutline ? "El documento tiene marcadores para navegar." : "El documento tiene " + numPages + " páginas y no tiene marcadores. Ayudan a moverse por documentos largos.",
+        fix: hasOutline ? "" : "Al exportar, activa la opción de crear marcadores a partir de los títulos." });
+    } else {
+      add({ id: "bookmarks", title: "Marcadores", status: "na", ref: "WCAG 2.4.5",
+        text: "El documento es corto (" + plural(numPages, "página", "páginas") + "). Los marcadores son recomendables a partir de unas 10 páginas." + (hasOutline ? " Aun así, tiene marcadores." : "") });
+    }
+  }
+
+  // 9. Formularios y orden de tabulación
+  if (doc) {
+    const acro = lk(catalog, "AcroForm");
+    let fields = [];
+    if (acro instanceof PDFDict) { try { fields = doc.getForm().getFields(); } catch (e) { fields = []; } }
+    if (fields.length) {
+      const noTip = fields.filter((f) => { const tu = textOf(lk(f.acroField.dict, "TU")); return !tu || !tu.trim(); });
+      add({ id: "forms", title: "Campos de formulario", status: noTip.length ? "fail" : "pass", ref: "WCAG 4.1.2",
+        text: noTip.length ? plural(noTip.length, "campo no tiene", "campos no tienen") + " descripción (información sobre herramientas). El lector de pantalla no podrá decir qué hay que escribir." : "Todos los campos tienen descripción. Comprueba que se entienden.",
+        details: [plural(fields.length, "campo de formulario", "campos de formulario") + "."],
+        fix: noTip.length ? "En Acrobat: Preparar formulario › Propiedades del campo › General › Información sobre herramientas." : "" });
+    }
+    const pagesWithAnnots = [];
+    const badTabs = [];
+    doc.getPages().forEach((p, i) => {
+      const annots = arr(lk(p.node, "Annots"));
+      if (annots.length) {
+        pagesWithAnnots.push(i + 1);
+        if (nameOf(lk(p.node, "Tabs")) !== "S") badTabs.push(i + 1);
+      }
+    });
+    if (pagesWithAnnots.length) {
+      add({ id: "tabs", title: "Orden de tabulación", status: badTabs.length ? "warn" : "pass", ref: "WCAG 2.4.3",
+        text: badTabs.length ? "En " + plural(badTabs.length, "página", "páginas") + " con enlaces o campos, el orden de tabulación no sigue la estructura del documento (" + pageList(badTabs) + ")." : "Las páginas con enlaces o campos siguen el orden de la estructura al tabular.",
+        fix: badTabs.length ? "En Acrobat: Miniaturas de página › Propiedades de página › Orden de tabulación › Usar estructura del documento." : "" });
+    }
+  }
+
+  // 10. Seguridad
+  {
+    const restricted = Array.isArray(perms) && !perms.includes(pdfjsLib.PermissionFlag.COPY_FOR_ACCESSIBILITY) && !perms.includes(pdfjsLib.PermissionFlag.COPY);
+    add({ id: "security", title: "Restricciones de seguridad", status: restricted ? "warn" : "pass", ref: "WCAG 1.3.1",
+      text: restricted ? "El PDF tiene restricciones que no permiten extraer el contenido. Algunos productos de apoyo podrían no leerlo."
+        : (encrypted || Array.isArray(perms)) ? "El PDF tiene restricciones de seguridad, pero permite que los productos de apoyo accedan al contenido." : "El PDF no tiene restricciones de seguridad.",
+      fix: restricted ? "Permite la extracción de contenido para accesibilidad en la configuración de seguridad, o quita las restricciones." : "" });
+  }
+
+  // 11. Declaración PDF/UA (solo informativa)
+  {
+    const m = /pdfuaid:part\s*(?:=\s*["']|>)\s*(\d)/.exec(xmp || "");
+    add({ id: "pdfua", title: "Identificador PDF/UA", status: "info", ref: "ISO 14289",
+      text: m ? "El archivo declara PDF/UA-" + m[1] + ". Lo indica el programa que lo creó; esta herramienta no verifica que lo cumpla."
+        : "El archivo no declara PDF/UA. No es obligatorio, pero lo incluyen los programas que exportan siguiendo esa norma." });
+  }
+
+  const info = meta.info || {};
+  return { checks, numPages, size: file.size, name: file.name, producer: (info.Creator || info.Producer || "").toString().trim(), encrypted };
+}
+
+function userError(msg) { const e = new Error(msg); e.user = true; return e; }
+function progress(msg, err) { const p = $("progress"); p.textContent = msg; p.classList.toggle("err", !!err); }
+
+// --- Pintado ---
+let lastResult = null;
+
+function render(r) {
+  lastResult = r;
+  const fails = r.checks.filter((c) => c.status === "fail").length;
+  const warns = r.checks.filter((c) => c.status === "warn").length;
+  const passes = r.checks.filter((c) => c.status === "pass").length;
+
+  const sum = $("summary");
+  sum.className = "summary " + (fails ? "s-bad" : warns ? "s-warn" : "s-ok");
+  $("sumTitle").textContent = fails
+    ? "Se han detectado " + plural(fails, "error", "errores") + " en las comprobaciones automáticas"
+    : warns ? "No se han detectado errores en las comprobaciones automáticas, pero hay " + plural(warns, "punto", "puntos") + " que revisar"
+    : "No se han detectado errores en las comprobaciones automáticas";
+  $("sumText").textContent = "Las comprobaciones automáticas solo cubren una parte de los requisitos. Con ellas no se puede afirmar que el documento sea accesible ni que cumpla ninguna norma. Completa también la revisión manual.";
+  const kb = r.size < 1048576 ? Math.max(1, Math.round(r.size / 1024)) + " KB" : (r.size / 1048576).toFixed(1).replace(".", ",") + " MB";
+  $("fileInfo").textContent = r.name + " · " + plural(r.numPages, "página", "páginas") + " · " + kb + (r.producer ? " · Creado con " + r.producer : "") + (r.encrypted ? " · Cifrado" : "");
+  $("tally").innerHTML = "";
+  [["Errores", fails], ["Para revisar", warns], ["Sin errores detectados", passes]].forEach(([l, n]) => {
+    const s = document.createElement("span"); s.textContent = l + ": " + n; $("tally").appendChild(s);
+  });
+
+  const list = $("checks");
+  list.innerHTML = "";
+  const order = { fail: 0, warn: 1, pass: 2, info: 3, na: 4 };
+  [...r.checks].sort((a, b) => order[a.status] - order[b.status]).forEach((c) => {
+    const li = document.createElement("li");
+    li.className = "check " + c.status;
+    const head = document.createElement("div"); head.className = "check-head";
+    const h = document.createElement("h3"); h.textContent = c.title;
+    const pill = document.createElement("span"); pill.className = "pill"; pill.textContent = STATUS[c.status];
+    head.append(h, pill);
+    const p = document.createElement("p"); p.textContent = c.text;
+    li.append(head, p);
+    if (c.details && c.details.length) {
+      const ul = document.createElement("ul");
+      c.details.forEach((d) => { const i = document.createElement("li"); i.textContent = d; ul.appendChild(i); });
+      li.appendChild(ul);
+    }
+    if (c.fix) {
+      const d = document.createElement("details");
+      const s = document.createElement("summary"); s.textContent = "Cómo corregirlo";
+      const fp = document.createElement("p"); fp.textContent = c.fix;
+      d.append(s, fp); li.appendChild(d);
+    }
+    const ref = document.createElement("p"); ref.className = "ref"; ref.textContent = "Referencia: " + c.ref;
+    li.appendChild(ref);
+    list.appendChild(li);
+  });
+
+  $("copyStatus").textContent = "";
+  $("results").hidden = false;
+  $("sumTitle").focus();
+  track("pdf-analizar", "Analizar PDF");
+  track("pdf-resultado-" + (fails ? "errores" : warns ? "avisos" : "sin-errores"));
+}
+
+function summaryText(r) {
+  const lines = ["Comprobador de PDF: " + $("sumTitle").textContent + ".", r.name + ", " + plural(r.numPages, "página", "páginas") + ".", ""];
+  const order = { fail: 0, warn: 1, pass: 2, info: 3, na: 4 };
+  [...r.checks].sort((a, b) => order[a.status] - order[b.status]).forEach((c) => {
+    lines.push("[" + STATUS[c.status] + "] " + c.title + ": " + c.text);
+    (c.details || []).forEach((d) => lines.push("  - " + d));
+  });
+  lines.push("", "Revisión manual pendiente:");
+  MANUAL.forEach((m) => lines.push("  - " + m));
+  lines.push("", "Resultado de comprobaciones automáticas orientativas. No es una auditoría ni certifica que el documento sea accesible o cumpla ninguna norma.");
+  return lines.join("\n");
+}
+
+function buildManual() {
+  const ul = $("manualList");
+  MANUAL.forEach((m, i) => {
+    const li = document.createElement("li");
+    const label = document.createElement("label");
+    const cb = document.createElement("input"); cb.type = "checkbox"; cb.id = "m" + i;
+    const span = document.createElement("span"); span.textContent = m;
+    label.append(cb, span); li.appendChild(label); ul.appendChild(li);
+  });
+}
+
+async function handle(file) {
+  if (!file) return;
+  $("results").hidden = true;
+  if (file.size > 200 * 1048576) { progress("El archivo pesa más de 200 MB. Es demasiado grande para analizarlo en el navegador.", true); return; }
+  progress("Abriendo " + file.name + "…");
+  try {
+    const r = await analyze(file);
+    progress("");
+    render(r);
+  } catch (e) {
+    console.error(e);
+    progress(e && e.user ? e.message : "No se ha podido analizar el PDF. Puede que esté dañado o use una función que no reconocemos.", true);
+    track("pdf-no-leido");
+  }
+}
+
+// --- Eventos ---
+buildManual();
+const input = $("file");
+input.addEventListener("change", () => { handle(input.files[0]); input.value = ""; });
+const drop = $("drop");
+["dragenter", "dragover"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", (e) => { const f = e.dataTransfer && e.dataTransfer.files[0]; handle(f); });
+window.addEventListener("dragover", (e) => e.preventDefault());
+window.addEventListener("drop", (e) => e.preventDefault());
+
+$("again").addEventListener("click", () => { $("results").hidden = true; progress(""); input.focus(); });
+$("copySum").addEventListener("click", async () => {
+  if (!lastResult) return;
+  try { await navigator.clipboard.writeText(summaryText(lastResult)); $("copyStatus").textContent = "Resumen copiado."; }
+  catch (e) { $("copyStatus").textContent = "No se ha podido copiar. Prueba de nuevo."; }
+  track("pdf-copiar-resumen", "Copiar resumen");
+});
+$("proBtn").addEventListener("click", () => {
+  $("proThanks").hidden = false; $("proBtn").disabled = true;
+  track("pdf-pro-me-interesa", "Pro: me interesa");
+});
+document.querySelectorAll("[data-track]").forEach((a) => a.addEventListener("click", () => track(a.dataset.track)));
+</script>
+<script data-goatcounter="https://jrebate.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>
