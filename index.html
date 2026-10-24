@@ -7,183 +7,146 @@
 <meta name="description" content="Revisa en tu navegador las etiquetas, el idioma, el título y el texto alternativo de un PDF. Gratis, sin registro y sin subir el archivo.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,400..900&family=Inter+Tight:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Caveat:wght@500;600&display=swap">
+<link rel="stylesheet" href="assets/centaurux-base.css">
 <style>
-/* Una sola columna: zona para soltar el PDF, resumen, comprobaciones automáticas, revisión manual y Pro. */
-:root {
-  --paper: #f3f6f5;
-  --surface: #ffffff;
-  --ink: #142120;
-  --muted: #53625f;
-  --line: #d3ddda;
-  --accent: #0c5a61;
-  --accent-ink: #ffffff;
-  --accent-soft: #e2efef;
-  --ok: #1d6f37;
-  --ok-soft: #e3f2e7;
-  --warn: #8a5100;
-  --warn-soft: #fbf0dc;
-  --bad: #a8231b;
-  --bad-soft: #fbe6e4;
-  --font-ui: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
-  --radius: 10px;
-  color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --paper: #0e1514; --surface: #162120; --ink: #e5eeec; --muted: #9db0ac; --line: #2b3b39;
-    --accent: #6cc6cc; --accent-ink: #062325; --accent-soft: #173335;
-    --ok: #74d18f; --ok-soft: #173322; --warn: #f1b75e; --warn-soft: #362812; --bad: #ff8f85; --bad-soft: #3a1b19;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --paper: #0e1514; --surface: #162120; --ink: #e5eeec; --muted: #9db0ac; --line: #2b3b39;
-  --accent: #6cc6cc; --accent-ink: #062325; --accent-soft: #173335;
-  --ok: #74d18f; --ok-soft: #173322; --warn: #f1b75e; --warn-soft: #362812; --bad: #ff8f85; --bad-soft: #3a1b19;
-  color-scheme: dark;
-}
-* { box-sizing: border-box; }
+/* Estilo CentaurUX: tokens --cz-* de assets/centaurux-base.css. Una columna: portada, zona para soltar el PDF, resumen, comprobaciones, revisión manual y Pro. */
 [hidden] { display: none !important; }
-body {
-  background: var(--paper); color: var(--ink);
-  font-family: var(--font-ui); font-size: 1rem; line-height: 1.55; margin: 0;
-}
-.wrap {
-  max-width: 880px; margin: 0 auto;
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-block: 28px 56px;
-}
-a { color: var(--accent); }
-:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.wrap { max-width: 880px; padding-block: 40px 64px; }
 .skip { position: absolute; left: -9999px; }
-.skip:focus { left: 16px; top: 16px; background: var(--surface); padding: 8px 12px; z-index: 20; }
+.skip:focus { left: 16px; top: 16px; background: var(--cz-card); color: var(--cz-fg); padding: 8px 12px; z-index: 60; }
 .sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 51; background: oklch(0.17 0.008 260); }
+.cz-header { background: var(--cz-bg); }
+.cz-header .cz-wordmark img { height: 28px; }
+.cz-header .cz-wrap, .cz-footer .cz-wrap { max-width: 880px; }
 
-header.top { display: grid; gap: 10px; margin-bottom: 26px; max-width: 68ch; }
-.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .02em; color: var(--accent); }
-.brand svg { flex: none; }
-h1 { font-size: clamp(1.7rem, 3.6vw, 2.5rem); line-height: 1.15; margin: 0; text-wrap: balance; }
-h2 { font-size: 1.3rem; line-height: 1.25; margin: 0; }
-.lede { color: var(--muted); margin: 0; font-size: 1.08rem; }
-.badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
-.badge { font-size: .82rem; border: 1px solid var(--line); background: var(--surface); padding: 3px 10px; border-radius: 999px; color: var(--muted); }
+.hero { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px 28px; align-items: end; margin-bottom: 32px; }
+.hero-text { display: grid; gap: 14px; min-width: 0; }
+.hero .cz-sticky { max-width: 15ch; margin: 0 8px 10px 0; }
+@media (max-width: 640px) { .hero { grid-template-columns: minmax(0, 1fr); } .hero .cz-sticky { justify-self: start; margin-left: 6px; } }
+.badges { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.badges .cz-badge { gap: 8px; }
 
 .drop {
-  display: grid; justify-items: center; gap: 10px; text-align: center;
-  border: 2px dashed var(--line); border-radius: var(--radius); background: var(--surface);
-  padding: 34px 18px; cursor: pointer; transition: border-color .15s, background .15s;
+  position: relative; display: grid; justify-items: start; gap: 12px;
+  border: 1px dashed var(--cz-input); border-radius: var(--cz-radius); background: var(--cz-card);
+  padding: 28px 24px; cursor: pointer; transition: border-color .2s, background-color .2s;
 }
-.drop:hover, .drop.over { border-color: var(--accent); background: var(--accent-soft); }
-.drop:focus-within { outline: 3px solid var(--accent); outline-offset: 2px; }
-.drop strong { font-size: 1.15rem; }
-.drop .hint { max-width: 52ch; }
+.drop:hover, .drop.over { border-color: var(--cz-fg); }
+.drop.over { background: var(--cz-muted); }
+.drop:focus-within { outline: 2px solid var(--cz-fg); outline-offset: 2px; }
+.drop:hover .cz-btn, .drop:focus-within .cz-btn { background: var(--cz-lime); color: var(--cz-on-lime); }
+.drop-title { font-family: var(--cz-font-display); font-weight: 600; font-stretch: 92%; font-size: 1.35rem; line-height: 1.1; }
 .drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
-.fake-btn {
-  display: inline-block; background: var(--accent); color: var(--accent-ink); font-weight: 700;
-  border-radius: 8px; padding: 9px 16px;
-}
-.hint { color: var(--muted); font-size: .9rem; margin: 0; }
-.progress { margin-top: 12px; color: var(--muted); font-size: .95rem; min-height: 1.5em; }
-.progress.err { color: var(--bad); font-weight: 700; }
+.hint { color: var(--cz-muted-fg); font-size: .9rem; margin: 0; }
+.progress { margin-top: 12px; color: var(--cz-muted-fg); font-size: .95rem; min-height: 1.5em; }
+.progress.err { color: var(--cz-fg); font-weight: 600; display: flex; gap: 8px; align-items: baseline; }
+.progress.err::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 999px; background: var(--cz-destructive); transform: translateY(-1px); }
+button.cz-btn { font-family: var(--cz-font-sans); }
+button.cz-btn:disabled { opacity: .55; cursor: default; }
+button.cz-btn:disabled:hover { background: var(--cz-primary); color: var(--cz-on-primary); }
 
-.btn {
-  font: inherit; font-weight: 700; cursor: pointer; border-radius: 8px; padding: 8px 14px;
-  background: var(--accent); color: var(--accent-ink); border: 1px solid var(--accent);
-}
-.btn.ghost { background: transparent; color: var(--accent); }
-
-#results { display: grid; gap: 22px; margin-top: 28px; }
-.summary {
-  border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 18px 16px;
-  display: grid; gap: 10px; background: var(--surface);
-}
-.summary.s-bad { background: var(--bad-soft); }
-.summary.s-warn { background: var(--warn-soft); }
-.summary.s-ok { background: var(--ok-soft); }
+#results { display: grid; gap: 28px; margin-top: 36px; }
+.summary { border: 1px solid var(--cz-border); border-radius: var(--cz-radius); background: var(--cz-card); padding: 22px 22px 18px; display: grid; gap: 12px; border-top-width: 4px; }
+.summary.s-bad { border-top-color: var(--cz-destructive); }
+.summary.s-warn { border-top-color: var(--cz-violet); }
+.summary.s-ok { border-top-color: var(--cz-lime); }
+.summary h2 { font-family: var(--cz-font-display); font-weight: 600; font-stretch: 92%; letter-spacing: -0.01em; line-height: 1.1; font-size: clamp(1.35rem, 2.4vw, 1.75rem); }
 .summary h2:focus { outline: none; }
-.summary p { margin: 0; }
-.fileinfo { color: var(--muted); font-size: .9rem; overflow-wrap: anywhere; }
-.tally { display: flex; flex-wrap: wrap; gap: 8px; font-size: .9rem; font-variant-numeric: tabular-nums; }
-.tally span { padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); }
+.summary p { max-width: 65ch; }
+.fileinfo { color: var(--cz-muted-fg); font-family: var(--cz-font-mono); font-size: .78rem; overflow-wrap: anywhere; }
+.tally { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.tally span { display: inline-flex; align-items: center; gap: 8px; font-family: var(--cz-font-mono); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; }
+.tally b { font-weight: 500; font-variant-numeric: tabular-nums; }
 .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-.status-line { font-size: .9rem; color: var(--muted); min-height: 1.4em; }
+.status-line { font-size: .9rem; color: var(--cz-muted-fg); min-height: 1.4em; }
 
-.section-head { display: grid; gap: 4px; }
-.checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-.check {
-  border: 1px solid var(--line); border-left-width: 5px; border-radius: var(--radius); background: var(--surface);
-  padding: 14px 16px; display: grid; gap: 6px;
-}
-.check.fail { border-left-color: var(--bad); }
-.check.warn { border-left-color: var(--warn); }
-.check.pass { border-left-color: var(--ok); }
-.check.na, .check.info { border-left-color: var(--line); }
-.check-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 12px; }
-.check h3 { font-size: 1.05rem; margin: 0; }
-.pill { font-size: .8rem; font-weight: 700; padding: 2px 10px; border-radius: 999px; white-space: nowrap; }
-.fail .pill { background: var(--bad-soft); color: var(--bad); }
-.warn .pill { background: var(--warn-soft); color: var(--warn); }
-.pass .pill { background: var(--ok-soft); color: var(--ok); }
-.na .pill, .info .pill { background: var(--paper); color: var(--muted); }
-.check p { margin: 0; }
-.check ul { margin: 0; padding-left: 1.2em; font-size: .93rem; }
-.check .ref { color: var(--muted); font-size: .84rem; }
-.check details summary { cursor: pointer; color: var(--accent); font-size: .93rem; }
+/* Estado: punto + etiqueta mono. Error en rojo, revisar en violeta, sin errores en tinta (el lima queda para un acento por bloque). */
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 999px; flex: none; background: var(--cz-muted-fg); }
+.dot.fail { background: var(--cz-destructive); }
+.dot.warn { background: var(--cz-violet); }
+.dot.pass { background: var(--cz-fg); }
+.dot.na, .dot.info { background: transparent; box-shadow: inset 0 0 0 1px var(--cz-muted-fg); }
+
+.section-head { display: grid; gap: 8px; }
+.checks { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--cz-rule); }
+.check { padding: 18px 0 18px 18px; display: grid; gap: 8px; border-bottom: 1px solid var(--cz-rule); border-left: 3px solid transparent; }
+.check.fail { border-left-color: var(--cz-destructive); }
+.check.warn { border-left-color: var(--cz-violet); }
+.check-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 14px; }
+.check h3 { font-family: var(--cz-font-display); font-weight: 600; font-stretch: 92%; font-size: 1.15rem; line-height: 1.2; }
+.pill { display: inline-flex; align-items: center; gap: 8px; font-family: var(--cz-font-mono); font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; }
+.check p { max-width: 68ch; }
+.check ul { margin: 0; padding-left: 1.2em; font-size: .93rem; color: var(--cz-muted-fg); }
+.check .ref { font-family: var(--cz-font-mono); font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--cz-muted-fg); }
+.check details summary { cursor: pointer; font-size: .93rem; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; width: fit-content; }
 .check details p { margin-top: 6px; font-size: .93rem; }
 
-.manual { border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); padding: 16px 18px; display: grid; gap: 10px; }
-.manual ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.manual { border: 1px solid var(--cz-border); border-radius: var(--cz-radius); background: var(--cz-card); padding: 22px; display: grid; gap: 12px; }
+.manual ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
 .manual label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
-.manual input { margin-top: 5px; accent-color: var(--accent); }
+.manual input { margin-top: 5px; accent-color: var(--cz-fg); width: 16px; height: 16px; flex: none; }
 
-.kofi {
-  display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; justify-content: space-between;
-  border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); padding: 12px 16px; font-size: .95rem;
-}
-.kofi a { font-weight: 700; }
+.kofi { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; border-top: 1px solid var(--cz-rule); border-bottom: 1px solid var(--cz-rule); padding: 14px 0; font-size: .95rem; }
+.kofi a { font-weight: 600; }
 
-.pro { border: 1px solid var(--accent); background: var(--accent-soft); border-radius: var(--radius); padding: 18px; display: grid; gap: 10px; }
-.pro-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 12px; }
-.pro-head strong { font-size: 1.1rem; }
-.price { font-weight: 700; }
-.price small { font-weight: 400; color: var(--muted); }
-.pro ul { margin: 0; padding-left: 1.2em; }
+.pro { border-radius: var(--cz-radius); padding: 24px; display: grid; gap: 14px; }
+.pro-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 14px; }
+.pro-head strong { font-family: var(--cz-font-display); font-weight: 600; font-stretch: 92%; font-size: 1.35rem; line-height: 1.1; }
+.price { font-family: var(--cz-font-mono); font-size: .85rem; }
+.price small { color: var(--cz-muted-fg); font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; }
+.pro ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+.pro .cz-btn { background: var(--cz-lime); color: var(--cz-on-lime); }
+.pro .cz-btn:hover { background: var(--cz-fg); color: var(--cz-bg); }
 .pro-thanks { font-size: .95rem; }
 
-.about { margin-top: 34px; display: grid; gap: 12px; }
-.about details { border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); padding: 12px 16px; }
-.about summary { cursor: pointer; font-weight: 700; }
-.about details p, .about details ul { font-size: .95rem; }
-.foot { margin-top: 34px; border-top: 1px solid var(--line); padding-top: 18px; color: var(--muted); font-size: .9rem; display: grid; gap: 8px; }
-.foot p { margin: 0; }
+.about { margin-top: 48px; display: grid; gap: 12px; }
+.about details { border-top: 1px solid var(--cz-rule); padding: 14px 0 4px; }
+.about details:last-of-type { border-bottom: 1px solid var(--cz-rule); padding-bottom: 14px; }
+.about summary { cursor: pointer; font-family: var(--cz-font-display); font-weight: 600; font-stretch: 92%; font-size: 1.1rem; }
+.about details p, .about details ul { font-size: .95rem; margin-top: 8px; max-width: 68ch; }
+.about details ul { padding-left: 1.2em; display: grid; gap: 4px; }
+
+.cz-footer { margin-top: 8px; }
+.cz-footer p { color: var(--cz-muted-fg); font-size: .9rem; max-width: 68ch; }
+.foot-notes { display: grid; gap: 8px; padding-bottom: 24px; }
+.cz-footer .cz-wordmark span { font-size: 1.1rem; }
+.cz-footer .cz-wordmark img { height: 22px; }
 </style>
 </head>
 <body>
 <a class="skip" href="#main">Saltar al contenido</a>
-<div class="wrap">
-  <header class="top">
-    <div class="brand">
-      <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M6 2.5h8l4.5 4.5v14.5H6z"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M14 2.5V7h4.5M9 13.5l2 2 4-4.5"/></svg>
-      Comprobador de PDF
+<header class="cz-header cz-dark">
+  <div class="cz-wrap cz-header__inner">
+    <a class="cz-wordmark" href="https://centaurux.es" target="_blank" rel="noopener">
+      <img src="assets/centaurux-iso-blanco.png" alt="" width="31" height="28">
+      <span>CentaurUX</span>
+    </a>
+    <span class="cz-header__tag">Research, redesigned.</span>
+  </div>
+</header>
+<div class="cz-wrap wrap">
+  <div class="hero">
+    <div class="hero-text">
+      <p class="cz-label">Comprobador de PDF · herramienta gratuita</p>
+      <h1 class="cz-display-xl">Revisa la accesibilidad de un PDF sin instalar nada</h1>
+      <p class="cz-lead">Comprueba las etiquetas, el idioma, el título, el texto alternativo de las imágenes y otros puntos básicos. Funciona en Windows, Mac, Linux y Chromebook.</p>
+      <div class="badges">
+        <span class="cz-badge"><span class="cz-dot" aria-hidden="true"></span>Gratis y sin registro</span>
+        <span class="cz-badge cz-badge--ghost">Comprobaciones automáticas y lista manual</span>
+      </div>
     </div>
-    <h1>Revisa la accesibilidad de un PDF sin instalar nada</h1>
-    <p class="lede">Comprueba las etiquetas, el idioma, el título, el texto alternativo de las imágenes y otros puntos básicos. Funciona en Windows, Mac, Linux y Chromebook.</p>
-    <div class="badges">
-      <span class="badge">Tu PDF no sale de tu navegador</span>
-      <span class="badge">Gratis y sin registro</span>
-      <span class="badge">Comprobaciones automáticas y lista manual</span>
-    </div>
-  </header>
+    <p class="cz-sticky" style="--cz-rotate: 3deg">Tu PDF no sale de tu navegador</p>
+  </div>
 
   <main id="main">
     <section aria-labelledby="dropTitle">
       <h2 id="dropTitle" class="sr">Elige un PDF</h2>
       <label class="drop" id="drop" for="file">
         <input type="file" id="file" accept="application/pdf,.pdf" aria-describedby="dropHint">
-        <strong>Suelta aquí tu PDF</strong>
-        <span class="fake-btn" aria-hidden="true">Elegir PDF</span>
+        <span class="drop-title">Suelta aquí tu PDF</span>
+        <span class="cz-btn" aria-hidden="true">Elegir PDF <span class="cz-arrow">→</span></span>
         <span class="hint" id="dropHint">El archivo se analiza en este dispositivo. No se sube a ningún servidor.</span>
       </label>
       <div class="progress" id="progress" role="status" aria-live="polite"></div>
@@ -196,20 +159,20 @@ h2 { font-size: 1.3rem; line-height: 1.25; margin: 0; }
         <p class="fileinfo" id="fileInfo"></p>
         <div class="tally" id="tally"></div>
         <div class="actions">
-          <button type="button" class="btn" id="copySum">Copiar resumen</button>
-          <button type="button" class="btn ghost" id="again">Revisar otro PDF</button>
+          <button type="button" class="cz-btn" id="copySum">Copiar resumen</button>
+          <button type="button" class="cz-btn cz-btn--outline" id="again">Revisar otro PDF</button>
         </div>
         <div class="status-line" id="copyStatus" role="status"></div>
       </section>
 
       <section aria-labelledby="autoTitle" class="section-head">
-        <h2 id="autoTitle">Comprobaciones automáticas</h2>
+        <h2 id="autoTitle" class="cz-section-title">Comprobaciones automáticas</h2>
         <p class="hint">Cada punto indica si se ha detectado un error, si conviene revisarlo o si no se ha detectado ningún problema.</p>
       </section>
       <ul class="checks" id="checks"></ul>
 
       <section class="manual" aria-labelledby="manualTitle">
-        <h2 id="manualTitle">Revisión manual</h2>
+        <h2 id="manualTitle" class="cz-section-title">Revisión manual</h2>
         <p class="hint">Estos puntos no se pueden comprobar de forma automática. Las casillas son solo para ayudarte y no se guardan.</p>
         <ul id="manualList"></ul>
       </section>
@@ -219,23 +182,23 @@ h2 { font-size: 1.3rem; line-height: 1.25; margin: 0; }
         <a href="https://ko-fi.com/jrebate" target="_blank" rel="noopener" data-track="pdf-kofi-tras-analizar">Invítanos a un café en Ko-fi</a>
       </div>
 
-      <section class="pro" aria-labelledby="proTitle">
+      <section class="pro cz-dark" aria-labelledby="proTitle">
         <div class="pro-head">
           <strong id="proTitle">Informe y lote · próximamente</strong>
-          <span class="price">7 € al mes <small>precio previsto</small></span>
+          <span class="price">7 € al mes · <small>precio previsto</small></span>
         </div>
         <ul>
           <li>Informe descargable en PDF y HTML, con tu logotipo, para entregar a tu cliente o a tu equipo.</li>
           <li>Revisión de muchos PDF a la vez, con una tabla para comparar resultados.</li>
           <li>Detalle por página y por elemento: qué imagen, qué tabla y dónde está.</li>
         </ul>
-        <div><button type="button" class="btn" id="proBtn">Me interesa</button></div>
+        <div><button type="button" class="cz-btn" id="proBtn">Me interesa</button></div>
         <div class="pro-thanks" id="proThanks" hidden role="status">Gracias, lo tendremos en cuenta. Tu interés nos ayuda a seguir mejorando el Comprobador. Mientras tanto, la revisión básica es gratis.</div>
       </section>
     </div>
 
     <section class="about" aria-labelledby="aboutTitle">
-      <h2 id="aboutTitle">Antes de usarlo</h2>
+      <h2 id="aboutTitle" class="cz-section-title">Antes de usarlo</h2>
       <details>
         <summary>Qué comprueba y qué no</summary>
         <p>Comprueba de forma automática si el PDF tiene etiquetas, idioma principal y título, si las imágenes etiquetadas tienen texto alternativo, si hay texto real y no solo imágenes, cómo se ordenan los encabezados, si las tablas tienen celdas de encabezado, los marcadores, los campos de formulario, el orden de tabulación y las restricciones de seguridad.</p>
@@ -259,11 +222,23 @@ h2 { font-size: 1.3rem; line-height: 1.25; margin: 0; }
     </section>
   </main>
 
-  <footer class="foot">
-    <p>Comprobaciones inspiradas en las técnicas para PDF de las pautas WCAG y en el protocolo Matterhorn de PDF/UA. Esta herramienta no presta asesoramiento jurídico.</p>
-    <p>¿Te resulta útil? Puedes apoyar el Comprobador <a href="https://ko-fi.com/jrebate" target="_blank" rel="noopener" data-track="pdf-kofi-pie">invitándonos a un café en Ko-fi</a>.</p>
-  </footer>
 </div>
+<footer class="cz-footer">
+  <div class="cz-wrap">
+    <div class="foot-notes">
+      <p>Comprobaciones inspiradas en las técnicas para PDF de las pautas WCAG y en el protocolo Matterhorn de PDF/UA. Esta herramienta no presta asesoramiento jurídico.</p>
+      <p>¿Te resulta útil? Puedes apoyar el Comprobador <a href="https://ko-fi.com/jrebate" target="_blank" rel="noopener" data-track="pdf-kofi-pie">invitándonos a un café en Ko-fi</a>.</p>
+    </div>
+    <div class="cz-footer__inner">
+      <a class="cz-wordmark" href="https://centaurux.es" target="_blank" rel="noopener">
+        <img class="cz-logo--light-bg" src="assets/centaurux-iso-negro.png" alt="" width="24" height="22">
+        <img class="cz-logo--dark-bg" src="assets/centaurux-iso-blanco.png" alt="" width="24" height="22">
+        <span>CentaurUX</span>
+      </a>
+      <span class="cz-label">Human + AI = Centaur</span>
+    </div>
+  </div>
+</footer>
 
 <script src="vendor/pdf-lib.min.js"></script>
 <script type="module">
@@ -716,8 +691,11 @@ function render(r) {
   const kb = r.size < 1048576 ? Math.max(1, Math.round(r.size / 1024)) + " KB" : (r.size / 1048576).toFixed(1).replace(".", ",") + " MB";
   $("fileInfo").textContent = r.name + " · " + plural(r.numPages, "página", "páginas") + " · " + kb + (r.producer ? " · Creado con " + r.producer : "") + (r.encrypted ? " · Cifrado" : "");
   $("tally").innerHTML = "";
-  [["Errores", fails], ["Para revisar", warns], ["Sin errores detectados", passes]].forEach(([l, n]) => {
-    const s = document.createElement("span"); s.textContent = l + ": " + n; $("tally").appendChild(s);
+  [["fail", "Errores", fails], ["warn", "Para revisar", warns], ["pass", "Sin errores detectados", passes]].forEach(([k, l, n]) => {
+    const s = document.createElement("span");
+    const d = document.createElement("i"); d.className = "dot " + k; d.setAttribute("aria-hidden", "true");
+    const v = document.createElement("b"); v.textContent = n;
+    s.append(d, l + ": ", v); $("tally").appendChild(s);
   });
 
   const list = $("checks");
@@ -728,7 +706,9 @@ function render(r) {
     li.className = "check " + c.status;
     const head = document.createElement("div"); head.className = "check-head";
     const h = document.createElement("h3"); h.textContent = c.title;
-    const pill = document.createElement("span"); pill.className = "pill"; pill.textContent = STATUS[c.status];
+    const pill = document.createElement("span"); pill.className = "pill";
+    const dot = document.createElement("i"); dot.className = "dot " + c.status; dot.setAttribute("aria-hidden", "true");
+    pill.append(dot, STATUS[c.status]);
     head.append(h, pill);
     const p = document.createElement("p"); p.textContent = c.text;
     li.append(head, p);
